@@ -36,4 +36,16 @@ public class StudentService {
         studentRepository.deleteById(id);
     }
 
+    public Student updateStudent(Long id, Student updatedStudent) {
+
+    Student existingStudent = studentRepository.findById(id)
+            .orElseThrow(() -> new StudentNotFoundException(id));
+
+    existingStudent.setName(updatedStudent.getName());
+    existingStudent.setEmail(updatedStudent.getEmail());
+
+    return studentRepository.save(existingStudent);
+}
+
+
 }
