@@ -1,6 +1,8 @@
 package com.example.studentmanagement.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -16,17 +18,22 @@ public class Student {
     private String email;
     @JsonIgnore
     private String password;
+    private String schoolName;
+    @Enumerated(EnumType.STRING)
+    private Role role;
 
     // No-arg constructor (required by JPA)
     public Student() {
     }
 
     // Parameterized constructor
-    public Student(Long id, String name, String email, String password) {
+    public Student(Long id, String name, String email, String password, String schoolName, Role role) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
+        this.schoolName = schoolName;
+        this.role = role;
     }
 
     // Getters and Setters
@@ -60,5 +67,21 @@ public class Student {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getSchoolName() {
+        return schoolName;
+    }
+
+    public void setSchoolName(String schoolName) {
+        this.schoolName = schoolName;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
     }
 }

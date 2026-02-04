@@ -1,6 +1,7 @@
 package com.example.studentmanagement.security;
 
 import com.example.studentmanagement.model.Student;
+import com.example.studentmanagement.model.Role;
 import com.example.studentmanagement.repository.StudentRepository;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -22,9 +23,10 @@ public class StudentUserDetailsService implements UserDetailsService {
         Student student = studentRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
+        Role role = student.getRole() != null ? student.getRole() : Role.USER;
         return User.withUsername(student.getEmail())
                 .password(student.getPassword())
-                .roles("USER")
+                .roles(role.name())
                 .build();
     }
 }

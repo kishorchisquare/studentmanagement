@@ -9,6 +9,8 @@ type Student = {
   id: number;
   name: string;
   email: string;
+  schoolName?: string | null;
+  role?: string | null;
 };
 
 export default function DashboardPage() {
@@ -87,6 +89,8 @@ export default function DashboardPage() {
                 <th>ID</th>
                 <th>Name</th>
                 <th>Email</th>
+                <th>School</th>
+                <th>Role</th>
               </tr>
             </thead>
             <tbody>
@@ -95,6 +99,8 @@ export default function DashboardPage() {
                   <td>{student.id}</td>
                   <td>{student.name}</td>
                   <td>{student.email}</td>
+                  <td>{student.schoolName || "-"}</td>
+                  <td>{student.role || "-"}</td>
                 </tr>
               ))}
             </tbody>

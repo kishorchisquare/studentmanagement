@@ -49,6 +49,7 @@ public class AuthController {
         student.setName(request.getName());
         student.setEmail(request.getEmail());
         student.setPassword(request.getPassword());
+        student.setSchoolName(request.getSchoolName());
         return studentService.addStudent(student);
     }
 }
