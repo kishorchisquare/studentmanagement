@@ -45,6 +45,29 @@ public class StudentService {
         return studentRepository.save(student);
     }
 
+    public Student addAdmin(Student student) {
+        Student current = getCurrentStudent();
+        Role role = current.getRole() != null ? current.getRole() : Role.USER;
+        if (role != Role.SUPERADMIN) {
+            throw new AccessDeniedException("Only SUPERADMIN can create admins");
+        }
+        if (student.getEmail() == null || student.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (student.getSchoolName() == null || student.getSchoolName().isBlank()) {
+            throw new IllegalArgumentException("School name is required");
+        }
+        if (student.getPassword() == null || student.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+        if (studentRepository.findByEmail(student.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+        student.setRole(Role.ADMIN);
+        student.setPassword(passwordEncoder.encode(student.getPassword()));
+        return studentRepository.save(student);
+    }
+
     public List<Student> getAllStudents() {
         Student current = getCurrentStudent();
         Role role = current.getRole() != null ? current.getRole() : Role.USER;

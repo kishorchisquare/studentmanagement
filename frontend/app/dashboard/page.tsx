@@ -19,6 +19,12 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [adminName, setAdminName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+  const [adminSchool, setAdminSchool] = useState("");
+  const [adminError, setAdminError] = useState<string | null>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("jwt");
@@ -59,11 +65,63 @@ export default function DashboardPage() {
     fetchStudents();
   }, [router]);
 
+  const currentUser =
+    userEmail ? students.find((s) => s.email === userEmail) : students[0];
+  const isSuperAdmin = (currentUser?.role || "USER") === "SUPERADMIN";
+
   const handleLogout = () => {
     localStorage.removeItem("jwt");
     localStorage.removeItem("jwtType");
     localStorage.removeItem("userEmail");
     router.push("/login");
+  };
+
+  const handleCreateAdmin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setAdminError(null);
+    const token = localStorage.getItem("jwt");
+    const tokenType = localStorage.getItem("jwtType") || "Bearer";
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    setAdminLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/auth/register-admin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `${tokenType} ${token}`
+        },
+        body: JSON.stringify({
+          name: adminName,
+          email: adminEmail,
+          password: adminPassword,
+          schoolName: adminSchool
+        })
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}));
+        throw new Error(payload.message || "Failed to create admin");
+      }
+      setAdminName("");
+      setAdminEmail("");
+      setAdminPassword("");
+      setAdminSchool("");
+      const refreshed = await fetch(`${API_BASE}/students`, {
+        headers: {
+          Authorization: `${tokenType} ${token}`
+        }
+      });
+      if (refreshed.ok) {
+        const data = (await refreshed.json()) as Student[];
+        setStudents(data);
+      }
+    } catch (err) {
+      setAdminError(err instanceof Error ? err.message : "Failed to create admin");
+    } finally {
+      setAdminLoading(false);
+    }
   };
 
   return (
@@ -144,10 +202,10 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1 rounded-md transition-colors group">
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-bold leading-none">
-                  {students[0]?.name || "Signed In"}
+                  {currentUser?.name || "Signed In"}
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tighter">
-                  {students[0]?.role || "USER"}
+                  {currentUser?.role || "USER"}
                   {userEmail ? ` • ${userEmail}` : ""}
                 </p>
               </div>
@@ -221,13 +279,13 @@ export default function DashboardPage() {
                 <span className="text-slate-400 text-xs mb-1">Real-time</span>
               </div>
               <div className="h-16 w-full bg-slate-50 dark:bg-slate-800/50 rounded-lg flex items-end px-2 py-1 gap-1">
-                <div className="flex-1 bg-purple-500/20 rounded-t-sm h-[30%]"></div>
-                <div className="flex-1 bg-purple-500/20 rounded-t-sm h-[40%]"></div>
-                <div className="flex-1 bg-purple-500/20 rounded-t-sm h-[70%]"></div>
-                <div className="flex-1 bg-purple-500/20 rounded-t-sm h-[50%]"></div>
-                <div className="flex-1 bg-purple-500/20 rounded-t-sm h-[60%]"></div>
-                <div className="flex-1 bg-purple-500/40 rounded-t-sm h-[80%]"></div>
-                <div className="flex-1 bg-purple-500 rounded-t-sm h-[95%]"></div>
+                <div className="flex-1 bg-primary/20 rounded-t-sm h-[30%]"></div>
+                <div className="flex-1 bg-primary/20 rounded-t-sm h-[40%]"></div>
+                <div className="flex-1 bg-primary/20 rounded-t-sm h-[70%]"></div>
+                <div className="flex-1 bg-primary/20 rounded-t-sm h-[50%]"></div>
+                <div className="flex-1 bg-primary/20 rounded-t-sm h-[60%]"></div>
+                <div className="flex-1 bg-primary/40 rounded-t-sm h-[80%]"></div>
+                <div className="flex-1 bg-primary rounded-t-sm h-[95%]"></div>
               </div>
             </div>
             <div className="col-span-12 lg:col-span-4 grid grid-cols-1 gap-3">
@@ -308,6 +366,77 @@ export default function DashboardPage() {
               </details>
             </div>
           </div>
+
+          {isSuperAdmin ? (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+                <h3 className="font-display font-bold text-base">Create Admin</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Superadmin-only: add a new admin for a specific campus.
+                </p>
+              </div>
+              <form className="p-4 grid grid-cols-12 gap-4" onSubmit={handleCreateAdmin}>
+                <div className="col-span-12 md:col-span-6">
+                  <label className="text-xs font-semibold text-slate-500">Full name</label>
+                  <input
+                    className="mt-1 w-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-1 focus:ring-primary/50 rounded-md text-sm"
+                    placeholder="Admin name"
+                    type="text"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-span-12 md:col-span-6">
+                  <label className="text-xs font-semibold text-slate-500">Email</label>
+                  <input
+                    className="mt-1 w-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-1 focus:ring-primary/50 rounded-md text-sm"
+                    placeholder="admin@school.edu"
+                    type="email"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-span-12 md:col-span-6">
+                  <label className="text-xs font-semibold text-slate-500">Password</label>
+                  <input
+                    className="mt-1 w-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-1 focus:ring-primary/50 rounded-md text-sm"
+                    placeholder="Minimum 8 characters"
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    minLength={6}
+                    required
+                  />
+                </div>
+                <div className="col-span-12 md:col-span-6">
+                  <label className="text-xs font-semibold text-slate-500">School</label>
+                  <input
+                    className="mt-1 w-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-1 focus:ring-primary/50 rounded-md text-sm"
+                    placeholder="North Campus"
+                    type="text"
+                    value={adminSchool}
+                    onChange={(e) => setAdminSchool(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="col-span-12 flex items-center gap-3">
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-md text-xs font-bold hover:opacity-90 transition-opacity"
+                    type="submit"
+                    disabled={adminLoading}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">add</span>
+                    {adminLoading ? "Creating..." : "Create Admin"}
+                  </button>
+                  {adminError ? (
+                    <p className="text-xs text-red-500">{adminError}</p>
+                  ) : null}
+                </div>
+              </form>
+            </div>
+          ) : null}
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden flex flex-col flex-1">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
