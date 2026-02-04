@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, Space_Mono } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
   weight: ["300", "400", "500", "600", "700"]
 });
-const mono = Space_Mono({
+const display = Space_Grotesk({
   subsets: ["latin"],
-  weight: ["400", "700"]
+  variable: "--font-display",
+  weight: ["500", "700"]
 });
 
 export const metadata: Metadata = {
@@ -22,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={`${plex.className} ${mono.className}`} data-fonts="ready">
+    <html lang="en" className="light">
+      <body className={`${inter.variable} ${display.variable}`}>
         {children}
       </body>
     </html>

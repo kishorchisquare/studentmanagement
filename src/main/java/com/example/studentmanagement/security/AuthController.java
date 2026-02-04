@@ -49,6 +49,17 @@ public class AuthController {
         student.setName(request.getName());
         student.setEmail(request.getEmail());
         student.setPassword(request.getPassword());
+        student.setSchoolName(request.getSchoolName());
         return studentService.addStudent(student);
+    }
+
+    @PostMapping("/register-admin")
+    public Student registerAdmin(@RequestBody RegisterRequest request) {
+        Student student = new Student();
+        student.setName(request.getName());
+        student.setEmail(request.getEmail());
+        student.setPassword(request.getPassword());
+        student.setSchoolName(request.getSchoolName());
+        return studentService.addAdmin(student);
     }
 }
