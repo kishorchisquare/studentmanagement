@@ -29,6 +29,7 @@ export default function LoginPage() {
       const data = (await res.json()) as { token: string; tokenType: string };
       localStorage.setItem("jwt", data.token);
       localStorage.setItem("jwtType", data.tokenType || "Bearer");
+      localStorage.setItem("userEmail", username);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

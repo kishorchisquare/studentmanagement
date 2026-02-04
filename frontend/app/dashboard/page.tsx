@@ -18,10 +18,13 @@ export default function DashboardPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("jwt");
     const tokenType = localStorage.getItem("jwtType") || "Bearer";
+    const storedEmail = localStorage.getItem("userEmail");
+    setUserEmail(storedEmail);
     if (!token) {
       router.push("/login");
       return;
@@ -59,6 +62,7 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem("jwt");
     localStorage.removeItem("jwtType");
+    localStorage.removeItem("userEmail");
     router.push("/login");
   };
 
@@ -139,9 +143,12 @@ export default function DashboardPage() {
             <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-800"></div>
             <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1 rounded-md transition-colors group">
               <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold leading-none">Alex Rivera</p>
+                <p className="text-xs font-bold leading-none">
+                  {students[0]?.name || "Signed In"}
+                </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-tighter">
-                  Super Admin
+                  {students[0]?.role || "USER"}
+                  {userEmail ? ` • ${userEmail}` : ""}
                 </p>
               </div>
               <div className="w-8 h-8 rounded-md bg-slate-200 dark:bg-slate-700"></div>
