@@ -4,22 +4,34 @@ import com.example.studentmanagement.exception.StudentNotFoundException;
 
 import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.repository.StudentRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class StudentService {
 
     private final StudentRepository studentRepository;
+    private final PasswordEncoder passwordEncoder;
 
     // Constructor Injection (BEST PRACTICE)
-    public StudentService(StudentRepository studentRepository) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder) {
         this.studentRepository = studentRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public Student addStudent(Student student) {
+        if (student.getEmail() == null || student.getEmail().isBlank()) {
+            throw new IllegalArgumentException("Email is required");
+        }
+        if (student.getPassword() == null || student.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password is required");
+        }
+        if (studentRepository.findByEmail(student.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email already registered");
+        }
+        student.setPassword(passwordEncoder.encode(student.getPassword()));
         return studentRepository.save(student);
     }
 
@@ -43,6 +55,9 @@ public class StudentService {
 
     existingStudent.setName(updatedStudent.getName());
     existingStudent.setEmail(updatedStudent.getEmail());
+    if (updatedStudent.getPassword() != null && !updatedStudent.getPassword().isBlank()) {
+        existingStudent.setPassword(passwordEncoder.encode(updatedStudent.getPassword()));
+    }
 
     return studentRepository.save(existingStudent);
 }
