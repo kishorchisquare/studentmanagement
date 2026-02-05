@@ -1,9 +1,11 @@
 package com.example.studentmanagement.service;
 
+import com.example.studentmanagement.dto.StudentRequest;
 import com.example.studentmanagement.exception.StudentNotFoundException;
-
+import com.example.studentmanagement.model.School;
 import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.model.Role;
+import com.example.studentmanagement.repository.SchoolRepository;
 import com.example.studentmanagement.repository.StudentRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,53 +20,59 @@ public class StudentService {
 
     private final StudentRepository studentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SchoolRepository schoolRepository;
 
     // Constructor Injection (BEST PRACTICE)
-    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder) {
+    public StudentService(
+            StudentRepository studentRepository,
+            PasswordEncoder passwordEncoder,
+            SchoolRepository schoolRepository) {
         this.studentRepository = studentRepository;
         this.passwordEncoder = passwordEncoder;
+        this.schoolRepository = schoolRepository;
     }
 
-    public Student addStudent(Student student) {
-        if (student.getEmail() == null || student.getEmail().isBlank()) {
+    public Student addStudent(StudentRequest request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new IllegalArgumentException("Email is required");
         }
-        if (student.getSchoolName() == null || student.getSchoolName().isBlank()) {
-            throw new IllegalArgumentException("School name is required");
-        }
-        if (student.getPassword() == null || student.getPassword().isBlank()) {
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("Password is required");
         }
-        if (studentRepository.findByEmail(student.getEmail()).isPresent()) {
+        if (studentRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already registered");
         }
-        if (student.getRole() == null) {
-            student.setRole(Role.USER);
-        }
-        student.setPassword(passwordEncoder.encode(student.getPassword()));
+        Student student = new Student();
+        student.setName(request.getName());
+        student.setEmail(request.getEmail());
+        student.setPassword(passwordEncoder.encode(request.getPassword()));
+        Role requestedRole = request.getRole() == null ? Role.USER : request.getRole();
+        student.setRole(requestedRole);
+        student.setSchool(resolveSchool(request.getSchoolId(), request.getSchoolName(), requestedRole));
         return studentRepository.save(student);
     }
 
-    public Student addAdmin(Student student) {
+    public Student addAdmin(StudentRequest request) {
         Student current = getCurrentStudent();
         Role role = current.getRole() != null ? current.getRole() : Role.USER;
         if (role != Role.SUPERADMIN) {
             throw new AccessDeniedException("Only SUPERADMIN can create admins");
         }
-        if (student.getEmail() == null || student.getEmail().isBlank()) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
             throw new IllegalArgumentException("Email is required");
         }
-        if (student.getSchoolName() == null || student.getSchoolName().isBlank()) {
-            throw new IllegalArgumentException("School name is required");
-        }
-        if (student.getPassword() == null || student.getPassword().isBlank()) {
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("Password is required");
         }
-        if (studentRepository.findByEmail(student.getEmail()).isPresent()) {
+        if (studentRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already registered");
         }
+        Student student = new Student();
+        student.setName(request.getName());
+        student.setEmail(request.getEmail());
+        student.setPassword(passwordEncoder.encode(request.getPassword()));
         student.setRole(Role.ADMIN);
-        student.setPassword(passwordEncoder.encode(student.getPassword()));
+        student.setSchool(resolveSchool(request.getSchoolId(), request.getSchoolName(), Role.ADMIN));
         return studentRepository.save(student);
     }
 
@@ -75,7 +83,11 @@ public class StudentService {
             return studentRepository.findAll();
         }
         if (role == Role.ADMIN) {
-            return studentRepository.findAllBySchoolName(current.getSchoolName());
+            School school = current.getSchool();
+            if (school == null || school.getId() == null) {
+                return List.of();
+            }
+            return studentRepository.findAllBySchoolId(school.getId());
         }
         return List.of(current);
     }
@@ -94,23 +106,28 @@ public class StudentService {
         studentRepository.deleteById(id);
     }
 
-    public Student updateStudent(Long id, Student updatedStudent) {
+    public Student updateStudent(Long id, StudentRequest request) {
 
-    Student existingStudent = studentRepository.findById(id)
-            .orElseThrow(() -> new StudentNotFoundException(id));
-    ensureAccess(existingStudent);
+        Student existingStudent = studentRepository.findById(id)
+                .orElseThrow(() -> new StudentNotFoundException(id));
+        ensureAccess(existingStudent);
 
-    existingStudent.setName(updatedStudent.getName());
-    existingStudent.setEmail(updatedStudent.getEmail());
-    if (updatedStudent.getSchoolName() != null && !updatedStudent.getSchoolName().isBlank()) {
-        existingStudent.setSchoolName(updatedStudent.getSchoolName());
+        existingStudent.setName(request.getName());
+        existingStudent.setEmail(request.getEmail());
+        if ((request.getSchoolId() != null)
+                || (request.getSchoolName() != null && !request.getSchoolName().isBlank())) {
+            Role targetRole = existingStudent.getRole() == null ? Role.USER : existingStudent.getRole();
+            existingStudent.setSchool(resolveSchool(
+                    request.getSchoolId(),
+                    request.getSchoolName(),
+                    targetRole));
+        }
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            existingStudent.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        return studentRepository.save(existingStudent);
     }
-    if (updatedStudent.getPassword() != null && !updatedStudent.getPassword().isBlank()) {
-        existingStudent.setPassword(passwordEncoder.encode(updatedStudent.getPassword()));
-    }
-
-    return studentRepository.save(existingStudent);
-}
 
     private Student getCurrentStudent() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -128,8 +145,12 @@ public class StudentService {
             return;
         }
         if (role == Role.ADMIN) {
-            if (current.getSchoolName() != null
-                    && current.getSchoolName().equals(target.getSchoolName())) {
+            School currentSchool = current.getSchool();
+            School targetSchool = target.getSchool();
+            if (currentSchool != null
+                    && targetSchool != null
+                    && currentSchool.getId() != null
+                    && currentSchool.getId().equals(targetSchool.getId())) {
                 return;
             }
         }
@@ -137,6 +158,22 @@ public class StudentService {
             return;
         }
         throw new AccessDeniedException("Not allowed");
+    }
+
+    private School resolveSchool(Long schoolId, String schoolName, Role role) {
+        if (schoolId != null) {
+            return schoolRepository.findById(schoolId)
+                    .orElseThrow(() -> new IllegalArgumentException("School not found"));
+        }
+        if (schoolName != null && !schoolName.isBlank()) {
+            String normalized = schoolName.trim();
+            return schoolRepository.findByName(normalized)
+                    .orElseGet(() -> schoolRepository.save(new School(null, normalized)));
+        }
+        if (role == Role.SUPERADMIN) {
+            return null;
+        }
+        throw new IllegalArgumentException("School is required");
     }
 
 }

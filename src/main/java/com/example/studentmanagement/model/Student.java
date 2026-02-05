@@ -3,9 +3,12 @@ package com.example.studentmanagement.model;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
@@ -18,7 +21,9 @@ public class Student {
     private String email;
     @JsonIgnore
     private String password;
-    private String schoolName;
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
+    @JoinColumn(name = "school_id", nullable = true)
+    private School school;
     @Enumerated(EnumType.STRING)
     private Role role;
 
@@ -27,12 +32,12 @@ public class Student {
     }
 
     // Parameterized constructor
-    public Student(Long id, String name, String email, String password, String schoolName, Role role) {
+    public Student(Long id, String name, String email, String password, School school, Role role) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
-        this.schoolName = schoolName;
+        this.school = school;
         this.role = role;
     }
 
@@ -69,12 +74,12 @@ public class Student {
         this.password = password;
     }
 
-    public String getSchoolName() {
-        return schoolName;
+    public School getSchool() {
+        return school;
     }
 
-    public void setSchoolName(String schoolName) {
-        this.schoolName = schoolName;
+    public void setSchool(School school) {
+        this.school = school;
     }
 
     public Role getRole() {
