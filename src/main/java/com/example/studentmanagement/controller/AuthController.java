@@ -3,37 +3,29 @@ package com.example.studentmanagement.controller;
 import com.example.studentmanagement.dto.AuthRequest;
 import com.example.studentmanagement.dto.AuthResponse;
 import com.example.studentmanagement.dto.RegisterRequest;
+import com.example.studentmanagement.dto.StudentRequest;
+import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.security.JwtService;
-
+import com.example.studentmanagement.service.StudentService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.example.studentmanagement.dto.StudentRequest;
-import com.example.studentmanagement.model.Student;
-import com.example.studentmanagement.service.StudentService;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
-    private final StudentService studentService;
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
-    public AuthController(
-            AuthenticationManager authenticationManager,
-            JwtService jwtService,
-            StudentService studentService) {
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-        this.studentService = studentService;
-    }
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private StudentService studentService;
 
     @PostMapping("/login")
     public AuthResponse login(@RequestBody AuthRequest request) {
@@ -73,4 +65,3 @@ public class AuthController {
         return studentService.addAdmin(studentRequest);
     }
 }
-

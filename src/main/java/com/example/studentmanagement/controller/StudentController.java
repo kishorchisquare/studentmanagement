@@ -3,6 +3,7 @@ package com.example.studentmanagement.controller;
 import com.example.studentmanagement.dto.StudentRequest;
 import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.service.StudentService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,20 +12,14 @@ import java.util.List;
 @RequestMapping("/students")
 public class StudentController {
 
-    private final StudentService studentService;
+    @Autowired
+    private StudentService studentService;
 
-    // Constructor Injection
-    public StudentController(StudentService studentService) {
-        this.studentService = studentService;
-    }
-
-    // POST - add student
     @PostMapping
     public Student addStudent(@RequestBody StudentRequest request) {
         return studentService.addStudent(request);
     }
 
-    // GET - get all students
     @GetMapping
     public List<Student> getAllStudents() {
         return studentService.getAllStudents();
@@ -35,7 +30,6 @@ public class StudentController {
         return studentService.getStudentById(id);
     }
 
-    // DELETE - student by id
     @DeleteMapping("/{id}")
     public void deleteStudent(@PathVariable Long id) {
         studentService.deleteStudent(id);
@@ -47,5 +41,4 @@ public class StudentController {
             @RequestBody StudentRequest request) {
         return studentService.updateStudent(id, request);
     }
-
 }

@@ -2,6 +2,7 @@ package com.example.studentmanagement.service;
 
 import com.example.studentmanagement.model.School;
 import com.example.studentmanagement.repository.SchoolRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -9,11 +10,8 @@ import java.util.List;
 @Service
 public class SchoolService {
 
-    private final SchoolRepository schoolRepository;
-
-    public SchoolService(SchoolRepository schoolRepository) {
-        this.schoolRepository = schoolRepository;
-    }
+    @Autowired
+    private SchoolRepository schoolRepository;
 
     public List<School> getAllSchools() {
         return schoolRepository.findAll();

@@ -7,6 +7,7 @@ import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.model.Role;
 import com.example.studentmanagement.repository.SchoolRepository;
 import com.example.studentmanagement.repository.StudentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
@@ -18,19 +19,14 @@ import java.util.List;
 @Service
 public class StudentService {
 
-    private final StudentRepository studentRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final SchoolRepository schoolRepository;
+    @Autowired
+    private StudentRepository studentRepository;
 
-    // Constructor Injection (BEST PRACTICE)
-    public StudentService(
-            StudentRepository studentRepository,
-            PasswordEncoder passwordEncoder,
-            SchoolRepository schoolRepository) {
-        this.studentRepository = studentRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.schoolRepository = schoolRepository;
-    }
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private SchoolRepository schoolRepository;
 
     public Student addStudent(StudentRequest request) {
         if (request.getEmail() == null || request.getEmail().isBlank()) {
@@ -175,5 +171,4 @@ public class StudentService {
         }
         throw new IllegalArgumentException("School is required");
     }
-
 }
