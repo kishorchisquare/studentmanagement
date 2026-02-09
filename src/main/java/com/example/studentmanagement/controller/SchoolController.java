@@ -2,6 +2,7 @@ package com.example.studentmanagement.controller;
 
 import com.example.studentmanagement.model.School;
 import com.example.studentmanagement.service.SchoolService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -10,11 +11,8 @@ import java.util.List;
 @RequestMapping("/schools")
 public class SchoolController {
 
-    private final SchoolService schoolService;
-
-    public SchoolController(SchoolService schoolService) {
-        this.schoolService = schoolService;
-    }
+    @Autowired
+    private SchoolService schoolService;
 
     @GetMapping
     public List<School> getAllSchools() {

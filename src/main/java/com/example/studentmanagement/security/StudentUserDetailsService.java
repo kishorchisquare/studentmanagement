@@ -3,6 +3,7 @@ package com.example.studentmanagement.security;
 import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.model.Role;
 import com.example.studentmanagement.repository.StudentRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,11 +13,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class StudentUserDetailsService implements UserDetailsService {
 
-    private final StudentRepository studentRepository;
-
-    public StudentUserDetailsService(StudentRepository studentRepository) {
-        this.studentRepository = studentRepository;
-    }
+    @Autowired
+    private StudentRepository studentRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {

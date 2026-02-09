@@ -3,6 +3,7 @@ package com.example.studentmanagement.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -14,17 +15,20 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private final SecretKey secretKey;
-    private final long expirationMs;
+    @Value("${app.jwt.secret}")
+    private String secret;
 
-    public JwtService(
-            @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.expiration-ms}") long expirationMs) {
+    @Value("${app.jwt.expiration-ms}")
+    private long expirationMs;
+
+    private SecretKey secretKey;
+
+    @PostConstruct
+    public void init() {
         if (secret == null || secret.length() < 32) {
             throw new IllegalArgumentException("app.jwt.secret must be at least 32 characters");
         }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.expirationMs = expirationMs;
     }
 
     public String generateToken(UserDetails userDetails) {
