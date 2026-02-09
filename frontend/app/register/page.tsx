@@ -1,28 +1,68 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
+
+type School = {
+  id: number;
+  name: string;
+};
 
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [schoolId, setSchoolId] = useState("");
   const [schoolName, setSchoolName] = useState("");
+  const [schools, setSchools] = useState<School[]>([]);
+  const [schoolsError, setSchoolsError] = useState<string | null>(null);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadSchools = async () => {
+    setSchoolsLoading(true);
+    setSchoolsError(null);
+    try {
+      const res = await fetch(`${API_BASE}/schools`);
+      if (!res.ok) {
+        throw new Error("Failed to load schools");
+      }
+      const data = (await res.json()) as School[];
+      setSchools(data);
+    } catch (err) {
+      setSchoolsError(err instanceof Error ? err.message : "Failed to load schools");
+    } finally {
+      setSchoolsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSchools();
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    if (!schoolId && !schoolName.trim()) {
+      setError("Select a school or enter a new school name");
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, schoolName })
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          schoolId: schoolId ? Number(schoolId) : undefined,
+          schoolName: schoolName.trim() || undefined
+        })
       });
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
@@ -136,14 +176,47 @@ export default function RegisterPage() {
               </div>
               <div>
                 <label className="text-xs font-semibold text-slate-500">School name</label>
-                <input
-                  className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-800"
-                  placeholder="Green Valley High"
-                  type="text"
-                  value={schoolName}
-                  onChange={(e) => setSchoolName(e.target.value)}
-                  required
-                />
+                <div className="mt-2 grid gap-3">
+                  <div className="relative">
+                    <select
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-800"
+                      value={schoolId}
+                      onChange={(e) => {
+                        setSchoolId(e.target.value);
+                        if (e.target.value) {
+                          setSchoolName("");
+                        }
+                      }}
+                    >
+                      <option value="">Select an existing school</option>
+                      {schools.map((school) => (
+                        <option key={school.id} value={school.id}>
+                          {school.name}
+                        </option>
+                      ))}
+                    </select>
+                    {schoolsLoading ? (
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                        Loading...
+                      </span>
+                    ) : null}
+                  </div>
+                  <input
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30 dark:border-slate-700 dark:bg-slate-800"
+                    placeholder="Or enter a new school name"
+                    type="text"
+                    value={schoolName}
+                    onChange={(e) => {
+                      setSchoolName(e.target.value);
+                      if (e.target.value) {
+                        setSchoolId("");
+                      }
+                    }}
+                  />
+                  {schoolsError ? (
+                    <p className="text-xs text-amber-500">{schoolsError}</p>
+                  ) : null}
+                </div>
               </div>
 
               {error ? <p className="text-xs text-red-500">{error}</p> : null}

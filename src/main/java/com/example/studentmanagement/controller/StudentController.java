@@ -1,5 +1,6 @@
 package com.example.studentmanagement.controller;
 
+import com.example.studentmanagement.dto.StudentRequest;
 import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.service.StudentService;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +20,8 @@ public class StudentController {
 
     // POST - add student
     @PostMapping
-    public Student addStudent(@RequestBody Student student) {
-        return studentService.addStudent(student);
+    public Student addStudent(@RequestBody StudentRequest request) {
+        return studentService.addStudent(request);
     }
 
     // GET - get all students
@@ -43,9 +44,8 @@ public class StudentController {
     @PutMapping("/{id}")
     public Student updateStudent(
             @PathVariable Long id,
-            @RequestBody Student student) {
-
-        return studentService.updateStudent(id, student);
+            @RequestBody StudentRequest request) {
+        return studentService.updateStudent(id, request);
     }
 
 }

@@ -1,4 +1,9 @@
-package com.example.studentmanagement.security;
+package com.example.studentmanagement.controller;
+
+import com.example.studentmanagement.dto.AuthRequest;
+import com.example.studentmanagement.dto.AuthResponse;
+import com.example.studentmanagement.dto.RegisterRequest;
+import com.example.studentmanagement.security.JwtService;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -9,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.studentmanagement.dto.StudentRequest;
 import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.service.StudentService;
 
@@ -45,21 +51,26 @@ public class AuthController {
 
     @PostMapping("/register")
     public Student register(@RequestBody RegisterRequest request) {
-        Student student = new Student();
-        student.setName(request.getName());
-        student.setEmail(request.getEmail());
-        student.setPassword(request.getPassword());
-        student.setSchoolName(request.getSchoolName());
-        return studentService.addStudent(student);
+        StudentRequest studentRequest = new StudentRequest(
+                request.getName(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getSchoolId(),
+                request.getSchoolName(),
+                null);
+        return studentService.addStudent(studentRequest);
     }
 
     @PostMapping("/register-admin")
     public Student registerAdmin(@RequestBody RegisterRequest request) {
-        Student student = new Student();
-        student.setName(request.getName());
-        student.setEmail(request.getEmail());
-        student.setPassword(request.getPassword());
-        student.setSchoolName(request.getSchoolName());
-        return studentService.addAdmin(student);
+        StudentRequest studentRequest = new StudentRequest(
+                request.getName(),
+                request.getEmail(),
+                request.getPassword(),
+                request.getSchoolId(),
+                request.getSchoolName(),
+                null);
+        return studentService.addAdmin(studentRequest);
     }
 }
+

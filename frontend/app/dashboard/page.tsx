@@ -9,8 +9,13 @@ type Student = {
   id: number;
   name: string;
   email: string;
-  schoolName?: string | null;
+  school?: School | null;
   role?: string | null;
+};
+
+type School = {
+  id: number;
+  name: string;
 };
 
 export default function DashboardPage() {
@@ -22,9 +27,13 @@ export default function DashboardPage() {
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
-  const [adminSchool, setAdminSchool] = useState("");
+  const [adminSchoolId, setAdminSchoolId] = useState("");
+  const [adminSchoolName, setAdminSchoolName] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [schoolsError, setSchoolsError] = useState<string | null>(null);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("jwt");
@@ -65,6 +74,27 @@ export default function DashboardPage() {
     fetchStudents();
   }, [router]);
 
+  useEffect(() => {
+    const loadSchools = async () => {
+      setSchoolsLoading(true);
+      setSchoolsError(null);
+      try {
+        const res = await fetch(`${API_BASE}/schools`);
+        if (!res.ok) {
+          throw new Error("Failed to load schools");
+        }
+        const data = (await res.json()) as School[];
+        setSchools(data);
+      } catch (err) {
+        setSchoolsError(err instanceof Error ? err.message : "Failed to load schools");
+      } finally {
+        setSchoolsLoading(false);
+      }
+    };
+
+    loadSchools();
+  }, []);
+
   const currentUser =
     userEmail ? students.find((s) => s.email === userEmail) : students[0];
   const isSuperAdmin = (currentUser?.role || "USER") === "SUPERADMIN";
@@ -79,6 +109,10 @@ export default function DashboardPage() {
   const handleCreateAdmin = async (event: React.FormEvent) => {
     event.preventDefault();
     setAdminError(null);
+    if (!adminSchoolId && !adminSchoolName.trim()) {
+      setAdminError("Select a school or enter a new school name");
+      return;
+    }
     const token = localStorage.getItem("jwt");
     const tokenType = localStorage.getItem("jwtType") || "Bearer";
     if (!token) {
@@ -97,7 +131,8 @@ export default function DashboardPage() {
           name: adminName,
           email: adminEmail,
           password: adminPassword,
-          schoolName: adminSchool
+          schoolId: adminSchoolId ? Number(adminSchoolId) : undefined,
+          schoolName: adminSchoolName.trim() || undefined
         })
       });
       if (!res.ok) {
@@ -107,7 +142,8 @@ export default function DashboardPage() {
       setAdminName("");
       setAdminEmail("");
       setAdminPassword("");
-      setAdminSchool("");
+      setAdminSchoolId("");
+      setAdminSchoolName("");
       const refreshed = await fetch(`${API_BASE}/students`, {
         headers: {
           Authorization: `${tokenType} ${token}`
@@ -412,14 +448,47 @@ export default function DashboardPage() {
                 </div>
                 <div className="col-span-12 md:col-span-6">
                   <label className="text-xs font-semibold text-slate-500">School</label>
-                  <input
-                    className="mt-1 w-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-1 focus:ring-primary/50 rounded-md text-sm"
-                    placeholder="North Campus"
-                    type="text"
-                    value={adminSchool}
-                    onChange={(e) => setAdminSchool(e.target.value)}
-                    required
-                  />
+                  <div className="mt-1 grid gap-2">
+                    <div className="relative">
+                      <select
+                        className="w-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-1 focus:ring-primary/50 rounded-md text-sm py-2 px-3"
+                        value={adminSchoolId}
+                        onChange={(e) => {
+                          setAdminSchoolId(e.target.value);
+                          if (e.target.value) {
+                            setAdminSchoolName("");
+                          }
+                        }}
+                      >
+                        <option value="">Select school</option>
+                        {schools.map((school) => (
+                          <option key={school.id} value={school.id}>
+                            {school.name}
+                          </option>
+                        ))}
+                      </select>
+                      {schoolsLoading ? (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">
+                          Loading...
+                        </span>
+                      ) : null}
+                    </div>
+                    <input
+                      className="w-full bg-slate-100 dark:bg-slate-800 border-none focus:ring-1 focus:ring-primary/50 rounded-md text-sm py-2 px-3"
+                      placeholder="Or add new school"
+                      type="text"
+                      value={adminSchoolName}
+                      onChange={(e) => {
+                        setAdminSchoolName(e.target.value);
+                        if (e.target.value) {
+                          setAdminSchoolId("");
+                        }
+                      }}
+                    />
+                    {schoolsError ? (
+                      <p className="text-xs text-amber-500">{schoolsError}</p>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="col-span-12 flex items-center gap-3">
                   <button
@@ -453,8 +522,9 @@ export default function DashboardPage() {
                   </span>
                   <select className="pl-8 pr-8 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-semibold focus:ring-1 focus:ring-primary appearance-none cursor-pointer">
                     <option>All Campuses</option>
-                    <option>North Campus</option>
-                    <option>Main Campus</option>
+                    {schools.map((school) => (
+                      <option key={school.id}>{school.name}</option>
+                    ))}
                   </select>
                 </div>
                 <button className="flex items-center gap-2 px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
@@ -516,7 +586,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-6 py-3">
                           <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-[10px] font-bold">
-                            {student.schoolName || "UNKNOWN"}
+                            {student.school?.name || "UNKNOWN"}
                           </span>
                         </td>
                         <td className="px-6 py-3 text-xs">

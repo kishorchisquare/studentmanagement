@@ -1,19 +1,21 @@
-package com.example.studentmanagement.security;
+package com.example.studentmanagement.dto;
 
 public class RegisterRequest {
 
     private String name;
     private String email;
     private String password;
+    private Long schoolId;
     private String schoolName;
 
     public RegisterRequest() {
     }
 
-    public RegisterRequest(String name, String email, String password, String schoolName) {
+    public RegisterRequest(String name, String email, String password, Long schoolId, String schoolName) {
         this.name = name;
         this.email = email;
         this.password = password;
+        this.schoolId = schoolId;
         this.schoolName = schoolName;
     }
 
@@ -39,6 +41,14 @@ public class RegisterRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public Long getSchoolId() {
+        return schoolId;
+    }
+
+    public void setSchoolId(Long schoolId) {
+        this.schoolId = schoolId;
     }
 
     public String getSchoolName() {
