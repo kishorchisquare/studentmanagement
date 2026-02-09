@@ -1,4 +1,4 @@
-package com.example.studentmanagement.security;
+package com.example.studentmanagement.dto;
 
 public class RegisterRequest {
 

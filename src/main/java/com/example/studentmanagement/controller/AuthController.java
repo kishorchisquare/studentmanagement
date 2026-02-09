@@ -1,4 +1,9 @@
-package com.example.studentmanagement.security;
+package com.example.studentmanagement.controller;
+
+import com.example.studentmanagement.dto.AuthRequest;
+import com.example.studentmanagement.dto.AuthResponse;
+import com.example.studentmanagement.dto.RegisterRequest;
+import com.example.studentmanagement.security.JwtService;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -68,3 +73,4 @@ public class AuthController {
         return studentService.addAdmin(studentRequest);
     }
 }
+
