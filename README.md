@@ -276,3 +276,4 @@ Currently basic Spring Boot test dependencies are included. You can run:
 2. Add refresh tokens or token revocation.
 3. Add pagination for `/students`.
 4. Add integration tests for security and repository layers.
+

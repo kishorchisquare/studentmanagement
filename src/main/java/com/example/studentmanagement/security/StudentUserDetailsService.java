@@ -3,6 +3,8 @@ package com.example.studentmanagement.security;
 import com.example.studentmanagement.model.Student;
 import com.example.studentmanagement.model.Role;
 import com.example.studentmanagement.repository.StudentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -13,11 +15,14 @@ import org.springframework.stereotype.Service;
 @Service
 public class StudentUserDetailsService implements UserDetailsService {
 
+    private static final Logger log = LoggerFactory.getLogger(StudentUserDetailsService.class);
+
     @Autowired
     private StudentRepository studentRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        log.info("Load user details for username={}", username);
         Student student = studentRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
