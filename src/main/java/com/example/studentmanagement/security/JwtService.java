@@ -4,6 +4,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import java.util.Date;
 
 @Service
 public class JwtService {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
     @Value("${app.jwt.secret}")
     private String secret;
@@ -29,6 +33,7 @@ public class JwtService {
             throw new IllegalArgumentException("app.jwt.secret must be at least 32 characters");
         }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        log.info("JWT service initialized with expirationMs={}", expirationMs);
     }
 
     public String generateToken(UserDetails userDetails) {
