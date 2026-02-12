@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
+import { ApiError, login } from "../../lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,22 +16,17 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password })
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.message || "Login failed");
-      }
-      const data = (await res.json()) as { token: string; tokenType: string };
+      const data = await login(username, password);
       localStorage.setItem("jwt", data.token);
       localStorage.setItem("jwtType", data.tokenType || "Bearer");
       localStorage.setItem("userEmail", username);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      if (err instanceof ApiError) {
+        setError(err.message);
+        return;
+      }
+      setError("Login failed");
     } finally {
       setLoading(false);
     }

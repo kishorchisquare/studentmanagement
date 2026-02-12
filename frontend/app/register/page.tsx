@@ -2,13 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
-
-type School = {
-  id: number;
-  name: string;
-};
+import { ApiError, getSchools, register, School } from "../../lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -27,14 +21,14 @@ export default function RegisterPage() {
     setSchoolsLoading(true);
     setSchoolsError(null);
     try {
-      const res = await fetch(`${API_BASE}/schools`);
-      if (!res.ok) {
-        throw new Error("Failed to load schools");
-      }
-      const data = (await res.json()) as School[];
+      const data = await getSchools();
       setSchools(data);
     } catch (err) {
-      setSchoolsError(err instanceof Error ? err.message : "Failed to load schools");
+      if (err instanceof ApiError) {
+        setSchoolsError(err.message);
+        return;
+      }
+      setSchoolsError("Failed to load schools");
     } finally {
       setSchoolsLoading(false);
     }
@@ -53,24 +47,20 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          schoolId: schoolId ? Number(schoolId) : undefined,
-          schoolName: schoolName.trim() || undefined
-        })
+      await register({
+        name,
+        email,
+        password,
+        schoolId: schoolId ? Number(schoolId) : undefined,
+        schoolName: schoolName.trim() || undefined
       });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.message || "Registration failed");
-      }
       router.push("/login");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      if (err instanceof ApiError) {
+        setError(err.message);
+        return;
+      }
+      setError("Registration failed");
     } finally {
       setLoading(false);
     }

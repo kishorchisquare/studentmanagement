@@ -2,21 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
-
-type Student = {
-  id: number;
-  name: string;
-  email: string;
-  school?: School | null;
-  role?: string | null;
-};
-
-type School = {
-  id: number;
-  name: string;
-};
+import {
+  ApiError,
+  getSchools,
+  getStudents,
+  registerAdmin,
+  School,
+  Student
+} from "../../lib/api";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -48,23 +41,16 @@ export default function DashboardPage() {
     const fetchStudents = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/students`, {
-          headers: {
-            Authorization: `${tokenType} ${token}`
-          }
-        });
-        if (res.status === 401 || res.status === 403) {
+        const data = await getStudents(token, tokenType);
+        setStudents(data);
+      } catch (err) {
+        if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
           localStorage.removeItem("jwt");
           localStorage.removeItem("jwtType");
+          localStorage.removeItem("userEmail");
           router.push("/login");
           return;
         }
-        if (!res.ok) {
-          throw new Error("Failed to load students");
-        }
-        const data = (await res.json()) as Student[];
-        setStudents(data);
-      } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load students");
       } finally {
         setLoading(false);
@@ -79,11 +65,7 @@ export default function DashboardPage() {
       setSchoolsLoading(true);
       setSchoolsError(null);
       try {
-        const res = await fetch(`${API_BASE}/schools`);
-        if (!res.ok) {
-          throw new Error("Failed to load schools");
-        }
-        const data = (await res.json()) as School[];
+        const data = await getSchools();
         setSchools(data);
       } catch (err) {
         setSchoolsError(err instanceof Error ? err.message : "Failed to load schools");
@@ -121,39 +103,32 @@ export default function DashboardPage() {
     }
     setAdminLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/register-admin`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `${tokenType} ${token}`
-        },
-        body: JSON.stringify({
+      await registerAdmin(
+        {
           name: adminName,
           email: adminEmail,
           password: adminPassword,
           schoolId: adminSchoolId ? Number(adminSchoolId) : undefined,
           schoolName: adminSchoolName.trim() || undefined
-        })
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.message || "Failed to create admin");
-      }
+        },
+        token,
+        tokenType
+      );
       setAdminName("");
       setAdminEmail("");
       setAdminPassword("");
       setAdminSchoolId("");
       setAdminSchoolName("");
-      const refreshed = await fetch(`${API_BASE}/students`, {
-        headers: {
-          Authorization: `${tokenType} ${token}`
-        }
-      });
-      if (refreshed.ok) {
-        const data = (await refreshed.json()) as Student[];
-        setStudents(data);
-      }
+      const refreshedStudents = await getStudents(token, tokenType);
+      setStudents(refreshedStudents);
     } catch (err) {
+      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
+        localStorage.removeItem("jwt");
+        localStorage.removeItem("jwtType");
+        localStorage.removeItem("userEmail");
+        router.push("/login");
+        return;
+      }
       setAdminError(err instanceof Error ? err.message : "Failed to create admin");
     } finally {
       setAdminLoading(false);
