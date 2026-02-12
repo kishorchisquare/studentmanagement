@@ -33,124 +33,174 @@ public class StudentService {
     private SchoolRepository schoolRepository;
 
     public Student addStudent(StudentRequest request) {
-        log.info("Add student start email={}", request.getEmail());
-        if (request.getEmail() == null || request.getEmail().isBlank()) {
-            log.warn("Add student failed: missing email");
-            throw new IllegalArgumentException("Email is required");
+        try {
+            if (request == null) {
+                throw new IllegalArgumentException("Request body is required");
+            }
+            log.info("Add student start email={}", request.getEmail());
+            if (request.getEmail() == null || request.getEmail().isBlank()) {
+                log.warn("Add student failed: missing email");
+                throw new IllegalArgumentException("Email is required");
+            }
+            if (request.getPassword() == null || request.getPassword().isBlank()) {
+                log.warn("Add student failed: missing password");
+                throw new IllegalArgumentException("Password is required");
+            }
+            if (studentRepository.findByEmail(request.getEmail()).isPresent()) {
+                log.warn("Add student failed: email already registered email={}", request.getEmail());
+                throw new IllegalArgumentException("Email already registered");
+            }
+            Student student = new Student();
+            student.setName(request.getName());
+            student.setEmail(request.getEmail());
+            student.setPassword(passwordEncoder.encode(request.getPassword()));
+            Role requestedRole = request.getRole() == null ? Role.USER : request.getRole();
+            student.setRole(requestedRole);
+            student.setSchool(resolveSchool(request.getSchoolId(), request.getSchoolName(), requestedRole));
+            Student saved = studentRepository.save(student);
+            log.info("Add student success id={} email={}", saved.getId(), saved.getEmail());
+            return saved;
+        } catch (IllegalArgumentException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Add student failed email={}", request != null ? request.getEmail() : null, ex);
+            throw new RuntimeException("Failed to add student", ex);
         }
-        if (request.getPassword() == null || request.getPassword().isBlank()) {
-            log.warn("Add student failed: missing password");
-            throw new IllegalArgumentException("Password is required");
-        }
-        if (studentRepository.findByEmail(request.getEmail()).isPresent()) {
-            log.warn("Add student failed: email already registered email={}", request.getEmail());
-            throw new IllegalArgumentException("Email already registered");
-        }
-        Student student = new Student();
-        student.setName(request.getName());
-        student.setEmail(request.getEmail());
-        student.setPassword(passwordEncoder.encode(request.getPassword()));
-        Role requestedRole = request.getRole() == null ? Role.USER : request.getRole();
-        student.setRole(requestedRole);
-        student.setSchool(resolveSchool(request.getSchoolId(), request.getSchoolName(), requestedRole));
-        Student saved = studentRepository.save(student);
-        log.info("Add student success id={} email={}", saved.getId(), saved.getEmail());
-        return saved;
     }
 
     public Student addAdmin(StudentRequest request) {
-        log.info("Add admin start email={}", request.getEmail());
-        Student current = getCurrentStudent();
-        Role role = current.getRole() != null ? current.getRole() : Role.USER;
-        if (role != Role.SUPERADMIN) {
-            log.warn("Add admin denied currentUser={} role={}", current.getEmail(), role);
-            throw new AccessDeniedException("Only SUPERADMIN can create admins");
+        try {
+            if (request == null) {
+                throw new IllegalArgumentException("Request body is required");
+            }
+            log.info("Add admin start email={}", request.getEmail());
+            Student current = getCurrentStudent();
+            Role role = current.getRole() != null ? current.getRole() : Role.USER;
+            if (role != Role.SUPERADMIN) {
+                log.warn("Add admin denied currentUser={} role={}", current.getEmail(), role);
+                throw new AccessDeniedException("Only SUPERADMIN can create admins");
+            }
+            if (request.getEmail() == null || request.getEmail().isBlank()) {
+                log.warn("Add admin failed: missing email");
+                throw new IllegalArgumentException("Email is required");
+            }
+            if (request.getPassword() == null || request.getPassword().isBlank()) {
+                log.warn("Add admin failed: missing password");
+                throw new IllegalArgumentException("Password is required");
+            }
+            if (studentRepository.findByEmail(request.getEmail()).isPresent()) {
+                log.warn("Add admin failed: email already registered email={}", request.getEmail());
+                throw new IllegalArgumentException("Email already registered");
+            }
+            Student student = new Student();
+            student.setName(request.getName());
+            student.setEmail(request.getEmail());
+            student.setPassword(passwordEncoder.encode(request.getPassword()));
+            student.setRole(Role.ADMIN);
+            student.setSchool(resolveSchool(request.getSchoolId(), request.getSchoolName(), Role.ADMIN));
+            Student saved = studentRepository.save(student);
+            log.info("Add admin success id={} email={}", saved.getId(), saved.getEmail());
+            return saved;
+        } catch (IllegalArgumentException | AccessDeniedException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Add admin failed email={}", request != null ? request.getEmail() : null, ex);
+            throw new RuntimeException("Failed to add admin", ex);
         }
-        if (request.getEmail() == null || request.getEmail().isBlank()) {
-            log.warn("Add admin failed: missing email");
-            throw new IllegalArgumentException("Email is required");
-        }
-        if (request.getPassword() == null || request.getPassword().isBlank()) {
-            log.warn("Add admin failed: missing password");
-            throw new IllegalArgumentException("Password is required");
-        }
-        if (studentRepository.findByEmail(request.getEmail()).isPresent()) {
-            log.warn("Add admin failed: email already registered email={}", request.getEmail());
-            throw new IllegalArgumentException("Email already registered");
-        }
-        Student student = new Student();
-        student.setName(request.getName());
-        student.setEmail(request.getEmail());
-        student.setPassword(passwordEncoder.encode(request.getPassword()));
-        student.setRole(Role.ADMIN);
-        student.setSchool(resolveSchool(request.getSchoolId(), request.getSchoolName(), Role.ADMIN));
-        Student saved = studentRepository.save(student);
-        log.info("Add admin success id={} email={}", saved.getId(), saved.getEmail());
-        return saved;
     }
 
     public List<Student> getAllStudents() {
-        log.info("Get all students start");
-        Student current = getCurrentStudent();
-        Role role = current.getRole() != null ? current.getRole() : Role.USER;
-        if (role == Role.SUPERADMIN) {
-            log.info("Get all students as SUPERADMIN currentUser={}", current.getEmail());
-            return studentRepository.findAll();
-        }
-        if (role == Role.ADMIN) {
-            School school = current.getSchool();
-            if (school == null || school.getId() == null) {
-                log.info("Get all students as ADMIN with no school currentUser={}", current.getEmail());
-                return List.of();
+        try {
+            log.info("Get all students start");
+            Student current = getCurrentStudent();
+            Role role = current.getRole() != null ? current.getRole() : Role.USER;
+            if (role == Role.SUPERADMIN) {
+                log.info("Get all students as SUPERADMIN currentUser={}", current.getEmail());
+                return studentRepository.findAll();
             }
-            log.info("Get all students as ADMIN currentUser={} schoolId={}", current.getEmail(), school.getId());
-            return studentRepository.findAllBySchoolId(school.getId());
+            if (role == Role.ADMIN) {
+                School school = current.getSchool();
+                if (school == null || school.getId() == null) {
+                    log.info("Get all students as ADMIN with no school currentUser={}", current.getEmail());
+                    return List.of();
+                }
+                log.info("Get all students as ADMIN currentUser={} schoolId={}", current.getEmail(), school.getId());
+                return studentRepository.findAllBySchoolId(school.getId());
+            }
+            log.info("Get all students as USER currentUser={}", current.getEmail());
+            return List.of(current);
+        } catch (AccessDeniedException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Get all students failed", ex);
+            throw new RuntimeException("Failed to fetch students", ex);
         }
-        log.info("Get all students as USER currentUser={}", current.getEmail());
-        return List.of(current);
     }
 
     public Student getStudentById(Long id) {
-        log.info("Get student by id={}", id);
-        Student target = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
-        ensureAccess(target);
-        return target;
+        try {
+            log.info("Get student by id={}", id);
+            Student target = studentRepository.findById(id)
+                    .orElseThrow(() -> new StudentNotFoundException(id));
+            ensureAccess(target);
+            return target;
+        } catch (StudentNotFoundException | AccessDeniedException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Get student by id failed id={}", id, ex);
+            throw new RuntimeException("Failed to fetch student", ex);
+        }
     }
 
     public void deleteStudent(Long id) {
-        log.info("Delete student id={}", id);
-        Student target = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
-        ensureAccess(target);
-        studentRepository.deleteById(id);
-        log.info("Delete student completed id={}", id);
+        try {
+            log.info("Delete student id={}", id);
+            Student target = studentRepository.findById(id)
+                    .orElseThrow(() -> new StudentNotFoundException(id));
+            ensureAccess(target);
+            studentRepository.deleteById(id);
+            log.info("Delete student completed id={}", id);
+        } catch (StudentNotFoundException | AccessDeniedException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Delete student failed id={}", id, ex);
+            throw new RuntimeException("Failed to delete student", ex);
+        }
     }
 
     public Student updateStudent(Long id, StudentRequest request) {
+        try {
+            if (request == null) {
+                throw new IllegalArgumentException("Request body is required");
+            }
+            log.info("Update student start id={} email={}", id, request.getEmail());
+            Student existingStudent = studentRepository.findById(id)
+                    .orElseThrow(() -> new StudentNotFoundException(id));
+            ensureAccess(existingStudent);
 
-        log.info("Update student start id={} email={}", id, request.getEmail());
-        Student existingStudent = studentRepository.findById(id)
-                .orElseThrow(() -> new StudentNotFoundException(id));
-        ensureAccess(existingStudent);
+            existingStudent.setName(request.getName());
+            existingStudent.setEmail(request.getEmail());
+            if ((request.getSchoolId() != null)
+                    || (request.getSchoolName() != null && !request.getSchoolName().isBlank())) {
+                Role targetRole = existingStudent.getRole() == null ? Role.USER : existingStudent.getRole();
+                existingStudent.setSchool(resolveSchool(
+                        request.getSchoolId(),
+                        request.getSchoolName(),
+                        targetRole));
+            }
+            if (request.getPassword() != null && !request.getPassword().isBlank()) {
+                existingStudent.setPassword(passwordEncoder.encode(request.getPassword()));
+            }
 
-        existingStudent.setName(request.getName());
-        existingStudent.setEmail(request.getEmail());
-        if ((request.getSchoolId() != null)
-                || (request.getSchoolName() != null && !request.getSchoolName().isBlank())) {
-            Role targetRole = existingStudent.getRole() == null ? Role.USER : existingStudent.getRole();
-            existingStudent.setSchool(resolveSchool(
-                    request.getSchoolId(),
-                    request.getSchoolName(),
-                    targetRole));
+            Student saved = studentRepository.save(existingStudent);
+            log.info("Update student success id={} email={}", saved.getId(), saved.getEmail());
+            return saved;
+        } catch (IllegalArgumentException | StudentNotFoundException | AccessDeniedException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Update student failed id={} email={}", id, request != null ? request.getEmail() : null, ex);
+            throw new RuntimeException("Failed to update student", ex);
         }
-        if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            existingStudent.setPassword(passwordEncoder.encode(request.getPassword()));
-        }
-
-        Student saved = studentRepository.save(existingStudent);
-        log.info("Update student success id={} email={}", saved.getId(), saved.getEmail());
-        return saved;
     }
 
     private Student getCurrentStudent() {

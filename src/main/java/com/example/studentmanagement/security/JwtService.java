@@ -29,31 +29,55 @@ public class JwtService {
 
     @PostConstruct
     public void init() {
-        if (secret == null || secret.length() < 32) {
-            throw new IllegalArgumentException("app.jwt.secret must be at least 32 characters");
+        try {
+            if (secret == null || secret.length() < 32) {
+                throw new IllegalArgumentException("app.jwt.secret must be at least 32 characters");
+            }
+            this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            log.info("JWT service initialized with expirationMs={}", expirationMs);
+        } catch (IllegalArgumentException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Failed to initialize JWT service", ex);
+            throw new RuntimeException("JWT initialization failed", ex);
         }
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        log.info("JWT service initialized with expirationMs={}", expirationMs);
     }
 
     public String generateToken(UserDetails userDetails) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + expirationMs);
-        return Jwts.builder()
-                .subject(userDetails.getUsername())
-                .issuedAt(now)
-                .expiration(expiry)
-                .signWith(secretKey, Jwts.SIG.HS256)
-                .compact();
+        try {
+            Date now = new Date();
+            Date expiry = new Date(now.getTime() + expirationMs);
+            return Jwts.builder()
+                    .subject(userDetails.getUsername())
+                    .issuedAt(now)
+                    .expiration(expiry)
+                    .signWith(secretKey, Jwts.SIG.HS256)
+                    .compact();
+        } catch (Exception ex) {
+            log.error("Failed to generate JWT token for username={}",
+                    userDetails != null ? userDetails.getUsername() : null, ex);
+            throw new RuntimeException("Failed to generate token", ex);
+        }
     }
 
     public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
+        try {
+            return extractAllClaims(token).getSubject();
+        } catch (Exception ex) {
+            log.debug("Failed to extract username from token: {}", ex.getMessage());
+            throw ex;
+        }
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        String username = extractUsername(token);
-        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        try {
+            String username = extractUsername(token);
+            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
+        } catch (Exception ex) {
+            log.debug("Token validation failed for username={} message={}",
+                    userDetails != null ? userDetails.getUsername() : null, ex.getMessage());
+            return false;
+        }
     }
 
     private boolean isTokenExpired(String token) {

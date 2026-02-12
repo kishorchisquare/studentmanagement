@@ -22,14 +22,21 @@ public class StudentUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        log.info("Load user details for username={}", username);
-        Student student = studentRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+        try {
+            log.info("Load user details for username={}", username);
+            Student student = studentRepository.findByEmail(username)
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        Role role = student.getRole() != null ? student.getRole() : Role.USER;
-        return User.withUsername(student.getEmail())
-                .password(student.getPassword())
-                .roles(role.name())
-                .build();
+            Role role = student.getRole() != null ? student.getRole() : Role.USER;
+            return User.withUsername(student.getEmail())
+                    .password(student.getPassword())
+                    .roles(role.name())
+                    .build();
+        } catch (UsernameNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Failed loading user details for username={}", username, ex);
+            throw new RuntimeException("Failed to load user details", ex);
+        }
     }
 }

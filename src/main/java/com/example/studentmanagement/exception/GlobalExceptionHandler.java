@@ -51,4 +51,16 @@ public class GlobalExceptionHandler {
 
         return error;
     }
+
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public Map<String, Object> handleServerError(Exception ex) {
+        log.error("Unhandled server error", ex);
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("message", "Internal server error");
+        error.put("status", 500);
+
+        return error;
+    }
 }
